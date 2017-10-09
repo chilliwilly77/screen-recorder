@@ -1,35 +1,60 @@
-let recorder = [];
 const playbackSpeed = 1000;
 const ignoreEls = ['body', 'html'];
+const ignoreIds = ['playback-btn']
+let recorder;
 
-document.onclick = event => {
-  recorder.push(event.target);
-};
+const setActive = el => new Promise(accept => {
+  if (ignoreEls.indexOf(el.localName) < 0 && ignoreIds.indexOf(el.id) < 0)
+    setTimeout(() => {
+      el.setAttribute("style", "background-color: red;");
+      accept();
+    }, playbackSpeed / 10)
+});
+const setInactive = el => new Promise(accept =>
+  setTimeout(() => {
+    el.setAttribute("style", "");
+    accept();
+  }, playbackSpeed * 9 / 10)
+);
 
-window.play = () => {
-  const playbackBtnEl = document.getElementById('playback-btn');
-  playbackBtnEl.disabled = true;
-  let index = -1;
-  function playNext() {
-    return new Promise(resolve => {
-      index++;
-      playbackBtnEl.disabled = true;
-      if (index < recorder.length) {
-        const el = recorder[index];
-        if (el && ignoreEls.indexOf(el.localName) < 0 ) {
-          recorder[index].setAttribute("style", "background-color: red;");
-          setTimeout((el => {
-            el.setAttribute("style", "");
-            setTimeout(playNext, playbackSpeed / 10);
-          }).bind(this, recorder[index]), playbackSpeed * 9 / 10);
-        } else {
-          playNext();
-        }
-      } else {
-        resolve();
-      }
-    });
+class Recorder {
+  //note deliberate non-use of keyword 'this' to avoid issues with lexical scope bindings with arrow-funcs
+  constructor() {
+    this.records = [];
+    this.isPlaying = false;
+    this.playbackBtn = document.getElementById('playback-btn');
   }
-  playNext()
-    .then(() => playbackBtnEl.disabled = false);
+  startPlayback(){
+    recorder.playbackBtn.disabled = true;
+    recorder.isPlaying = true;
+  }
+  stopPlayback(){
+    recorder.playbackBtn.disabled = false;
+    recorder.isPlaying = false;
+  }
+  reset(){
+    recorder.records = [];
+    recorder.stopPlayback();
+  }
+  record(event){
+    if (!recorder.isPlaying) recorder.records.push(event.target);
+  }
+  play(){
+    recorder.startPlayback();
+    let playbackPromiseChain = Promise.resolve();
+    recorder.records.forEach(el => {
+      playbackPromiseChain = playbackPromiseChain
+        .then(setActive.bind(null, el))
+        .then(setInactive.bind(null, el));
+    });
+    playbackPromiseChain
+      .then(recorder.reset)
+      .catch(recorder.reset);
+  }
+}
+
+window.onload = () => {
+  recorder = new Recorder();
+  window.play = recorder.play.bind(recorder);
+  document.onclick = recorder.record;
 };

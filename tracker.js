@@ -1,14 +1,17 @@
 const playbackSpeed = 1000;
 const ignoreEls = ['body', 'html'];
-const ignoreIds = ['playback-btn']
+const ignoreIds = ['playback-btn'];
+const activeStyle = "box-shadow: inset 0px 0px 0px 4px rgba(255, 0, 0, 0.5);";
+
 let recorder;
 
 const setActive = el => new Promise(accept => {
   if (ignoreEls.indexOf(el.localName) < 0 && ignoreIds.indexOf(el.id) < 0)
     setTimeout(() => {
-      el.setAttribute("style", "background-color: red;");
+      el.setAttribute("style", activeStyle);
       accept();
-    }, playbackSpeed / 10)
+    }, playbackSpeed / 10);
+  else accept();
 });
 const setInactive = el => new Promise(accept =>
   setTimeout(() => {
